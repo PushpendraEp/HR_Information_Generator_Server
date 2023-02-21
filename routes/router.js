@@ -1,11 +1,10 @@
 const express = require('express'),
   router = express.Router(),
   connection = require('../db/connection'),
-  uploadFlie = require('./upload')
-const getData  = require('./getData');
-const logIn = require('./logIn')
-const register = require('./userRegister');
-const { verifyToken } = require('./verifyToken');
+  uploadFlie = require('./upload'),
+  logIn = require('./logIn'),
+  register = require('./userRegister'),
+  { verifyToken } = require('./verifyToken');
 
 //@ Pushpendra ( 25/02/23 ) Initialize first route
 router.get('/', (req, res) => {
@@ -25,10 +24,6 @@ router.post('/loginUser', (req, res) => {
 
 router.post('/registerUser', (req, res) => {
   register.registerUser(req, res);
-});
-
-router.get('/getData',verifyToken,(req, res) => {
-  getData.getUser(req,res)
 });
 
 module.exports = router;
