@@ -5,10 +5,10 @@ bcrypt = require('bcrypt');
 /*
    @ Shubham (17/02/2023) 
    RegisterUser function created for userRegister
-   Requiments      :-id, First_name, last_name, Email, password, passwordconfirm
+   Requiments      :- id, First_name, last_name, Email, password, passwordconfirm
    expected result :- res.status(200).send({ message: "User successfull Register",
                       token:token will genrate automatic})
-   Faild resule    :- res.status(400).send({ message: "please entern email and password" })
+   Faild resule    :- res.status(400).send({ message: "please entern email and password", error_code: "error code" })
 */
 
 //  @ Shubham (17/02/2023) This function is For the User Regiastration 
