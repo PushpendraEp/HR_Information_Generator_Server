@@ -6,9 +6,11 @@ const connection = require('../db/connection'),
    @ Shubham (17/02/2023) 
    Login File function created for user log-in
    Requiments:- Email, password
-   expected result:- Success-res.status(200).send({
-                        message: "log in successfull", status: true,
-                        token: token will genrate automatic
+   expected result:- Success :- res.status(200).send({
+                                message: "log in successfull", status: true,
+                                token: token will genrate automatic})
+                        
+                      Fail :- res.status(400).send({message: "Failed Message", error_code: "Error Code"}) 
 */
 
 const loginFile = (req, res) => {
