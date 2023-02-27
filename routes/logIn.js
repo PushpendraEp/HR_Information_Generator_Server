@@ -10,7 +10,7 @@ const connection = require('../db/connection'),
                                 message: "log in successfull", status: true,
                                 token: token will genrate automatic})
                         
-                      Fail :- res.status(400).send({message: "Failed Message", error_code: "Error Code"}) 
+                        Fail :- res.status(400).send({message: "Failed Message", error_code: "Error Code"}) 
 */
 
 const loginFile = (req, res) => {
@@ -58,4 +58,5 @@ const loginFile = (req, res) => {
         res.status(400).send({ message: "please entern email and password", error_code: "#14 Email and password Must fill", status: false })
     }
 }
+
 module.exports = { loginFile }
