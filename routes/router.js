@@ -2,6 +2,7 @@ const express = require('express'),
   router = express.Router(),
   connection = require('../db/connection'),
   uploadFlie = require('./upload'),
+  // getTable=require('./getTable')
   logIn = require('./logIn'),
   register = require('./userRegister'),
   { verifyToken } = require('./verifyToken');
@@ -16,6 +17,11 @@ router.get('/', (req, res) => {
 
 router.post('/uploadFile', (req, res) => {
   uploadFlie.uploadExcel(req, res);
+});
+
+//@ Deepak ( 01/03/23 ) Initialize get route to get all tables list
+router.get('/', (req, res) => {
+  uploadFlie.getTableList(req,res);
 });
 
 router.post('/loginUser', (req, res) => {
