@@ -31,6 +31,9 @@ function uploadExcel(req, res) {
 
   // @ Deepak (24/02/2023) Uploading file in the destination folder
   upload(req, res, (err) => {
+
+    const selectedMonth = req.body.selectedMonth;
+    const selectedYear = req.body.selectedYear;
     if (err) {
 
       res.status(400).send({
@@ -44,7 +47,7 @@ function uploadExcel(req, res) {
       const fname = path.basename(req.file.originalname, path.extname(req.file.originalname));;
 
       // @ Deepak (24/02/2023) Concatenated table name with selected month and year
-      const table_name = `${fname}`;
+      const table_name = `${selectedMonth}_${selectedYear}_${fname}`;
 
       // @ Deepak (24/02/2023) getting a list of tables from database
       const showTable = `SHOW TABLES LIKE '${table_name}'`;
@@ -186,9 +189,9 @@ function uploadExcel(req, res) {
 
       const tableName = `${table_name}`;
       // console.log(tableName);
-      const year = tableName.slice(3, 7);
+      const month=`${selectedMonth}`
       // console.log(year);
-      const month = tableName.slice(0, 2);
+      const year=`${selectedYear}`
       // console.log(month);
 
       // Deepak (24/02/2023) Creating a function to insert tables name in a table
@@ -220,7 +223,8 @@ function uploadExcel(req, res) {
 // Deepak (24/02/2023) Creating a function to get tables name from database table and sseending response to client side
 function getTableList(req, res) {
 
-  const sql = 'SELECT * FROM table_names';
+  const selectedYear=req.body.year
+  const sql = 'SELECT name FROM table_names Where years='+ selectedYear;
 
   connection.query(sql, (error, results) => {
     if (error) {
