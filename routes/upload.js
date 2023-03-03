@@ -43,6 +43,7 @@ function uploadExcel(req, res) {
   // @ Deepak (24/02/2023) Uploading file in the destination folder
   upload(req, res, (err) => {
 
+    // @ Deepak (24/02/2023) parsed month and year from body 
     const selectedMonth = req.body.selectedMonth;
     const selectedYear = req.body.selectedYear;
     if (err) {
@@ -194,33 +195,81 @@ function uploadExcel(req, res) {
         } else {
           res.status(400).send('Invalid file type');
         }
-        // Deepak (24/02/2023) Calling a function to insert tables name in a table
+
+        // @ Deepak (03/03/2023) Delete the uploaded file from the internal storage
+        fs.unlink(filePath, (err) => {
+          if (err) {
+            console.error(err);
+            res.status(400).send({
+              message: "File Not Deleted",
+              error_code: "#5008 error in deleting file",
+              status: false
+            });
+          } else {
+            console.log(`File ${filePath} deleted successfully.`);
+          }
+        });
+        // @ Deepak (24/02/2023) Calling a function to insert tables name in a table
         insertTablesIntoTable(table_name);
       };
 
       const tableName = `${table_name}`;
-      // console.log(tableName);
-      const month=`${selectedMonth}`
-      // console.log(year);
-      const year=`${selectedYear}`
-      // console.log(month);
+      const month = `${selectedMonth}`
+      const year = `${selectedYear}`
 
-      // Deepak (24/02/2023) Creating a function to insert tables name in a table
+      // @ Deepak (24/02/2023) Creating a function to insert tables name in a table
       function insertTablesIntoTable() {
-        const sql = `INSERT INTO table_names (name,years,months) VALUES (?,?,?)`;
-        const values = [tableName, year, month];
-        console.log(values);
 
-        connection.query(sql, values, (error, results) => {
-          if (error) {
-            console.error(error);
+        // @ Deepak (03/03/2023) Checking Table Name iF already exist or not
+        const checkQuery = `SELECT COUNT(*) AS count FROM table_names WHERE name = '${tableName}'`;
+        connection.query(checkQuery, (err, results) => {
+          if (err) {
+            console.error(err);
             res.status(400).send({
-              message: "incorrect data(row does not stored)",
-              error_code: "#5008 error in inserting table name into table",
+              message: "Can Not Fetch the File frrom List ",
+              error_code: "#5009 Error in Checking File Name",
               status: false
             });
           } else {
-            console.log(`${results.affectedRows} row inserted into table table_names`);
+            const count = results[0].count;
+
+            // @ Deepak (03/03/2023) IF table Name exist, then update table row
+            if (count > 0) {
+              // The name already exists, so update the row
+              const updateQuery = `UPDATE table_names SET name = '${tableName}' WHERE name = '${tableName}'`;
+              connection.query(updateQuery, (err, results) => {
+                if (err) {
+                  console.error(err);
+                  res.status(400).send({
+                    message: "Table Data does Not Updated",
+                    error_code: "#5010 Error in Updateding File Data",
+                    status: false
+                  });
+                } else {
+                  console.log(`Name ${tableName} updated successfully.`);
+                }
+              });
+            } else {
+              // @ Deepak (03/03/2023) The name doesn't exist, so insert a new row in the table
+              const sql = `INSERT INTO table_names (name,years,months) VALUES (?,?,?)`;
+              const values = [tableName, year, month];
+              console.log(values);
+
+              connection.query(sql, values, (error, results) => {
+                if (error) {
+                  console.error(error);
+                  res.status(400).send({
+                    message: "incorrect data(row does not stored)",
+                    error_code: "#5011 error in geting data",
+                    status: false
+                  });
+                } else {
+                  console.log(`${results.affectedRows} row inserted into table table_names`);
+                }
+              });
+
+
+            }
           }
         });
 
@@ -234,15 +283,15 @@ function uploadExcel(req, res) {
 // Deepak (24/02/2023) Creating a function to get tables name from database table and sseending response to client side
 function getTableList(req, res) {
 
-  const selectedYear=req.body.year
-  const sql = 'SELECT name FROM table_names Where years='+ selectedYear;
+  const selectedYear = req.body.year
+  const sql = 'SELECT name FROM table_names Where years=' + selectedYear;
 
   connection.query(sql, (error, results) => {
     if (error) {
       console.error(error);
       res.status(400).send({
         message: "cannot get tables list",
-        error_code: "#5009 error in geting tables list",
+        error_code: "#5012 error in geting tables list",
         status: false
       });
     } else {
