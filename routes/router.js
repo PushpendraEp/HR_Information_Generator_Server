@@ -20,8 +20,13 @@ router.post('/uploadFile', (req, res) => {
 });
 
 //@ Deepak ( 01/03/23 ) Initialize get route to get all tables list
-router.get('/', (req, res) => {
+router.get('/getTable', (req, res) => {
   uploadFlie.getTableList(req,res);
+});
+
+//@ Deepak ( 03/03/23 ) Initialize get route to get selected table data
+router.get('/getTableData', (req, res) => {
+  uploadFlie.getTableListData(req,res);
 });
 
 router.post('/loginUser', (req, res) => {

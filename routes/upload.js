@@ -58,6 +58,8 @@ function uploadExcel(req, res) {
       // @ Deepak (24/02/2023) removing (.ext) from filename to create a table name
       const fname = path.basename(req.file.originalname, path.extname(req.file.originalname));;
 
+
+
       // @ Deepak (24/02/2023) Concatenated table name with selected month and year
       const table_name = `${selectedMonth}_${selectedYear}_${fname}`;
 
@@ -170,6 +172,9 @@ function uploadExcel(req, res) {
           const workbook = XLSX.readFile(req.file.path);
           const sheetName = workbook.SheetNames[0];
           const sheet = workbook.Sheets[sheetName];
+          const range = XLSX.utils.decode_range(sheet['!ref']);
+          range.s.r += 1;
+          sheet['!ref'] = XLSX.utils.encode_range(range);
           const results = XLSX.utils.sheet_to_json(sheet, { header: 1 });
           console.log(results);
 
@@ -196,19 +201,7 @@ function uploadExcel(req, res) {
           res.status(400).send('Invalid file type');
         }
 
-        // @ Deepak (03/03/2023) Delete the uploaded file from the internal storage
-        fs.unlink(filePath, (err) => {
-          if (err) {
-            console.error(err);
-            res.status(400).send({
-              message: "File Not Deleted",
-              error_code: "#5008 error in deleting file",
-              status: false
-            });
-          } else {
-            console.log(`File ${filePath} deleted successfully.`);
-          }
-        });
+
         // @ Deepak (24/02/2023) Calling a function to insert tables name in a table
         insertTablesIntoTable(table_name);
       };
@@ -235,7 +228,7 @@ function uploadExcel(req, res) {
 
             // @ Deepak (03/03/2023) IF table Name exist, then update table row
             if (count > 0) {
-              // The name already exists, so update the row
+              // @ Deepak (03/03/2023) The name already exists, so update the row
               const updateQuery = `UPDATE table_names SET name = '${tableName}' WHERE name = '${tableName}'`;
               connection.query(updateQuery, (err, results) => {
                 if (err) {
@@ -247,9 +240,26 @@ function uploadExcel(req, res) {
                   });
                 } else {
                   console.log(`Name ${tableName} updated successfully.`);
+
+                   // @ Deepak (03/03/2023) Delete the uploaded file from the internal storage
+                   const filePath = req.file.path;
+
+                   fs.unlink(filePath, (err) => {
+                     if (err) {
+                       console.error(err);
+                       res.status(400).send({
+                         message: "File Not Deleted",
+                         error_code: "#5008 error in deleting file",
+                         status: false
+                       });
+                     } else {
+                       console.log(`File ${filePath} deleted successfully.`);
+                     }
+                   });
                 }
               });
             } else {
+
               // @ Deepak (03/03/2023) The name doesn't exist, so insert a new row in the table
               const sql = `INSERT INTO table_names (name,years,months) VALUES (?,?,?)`;
               const values = [tableName, year, month];
@@ -265,6 +275,22 @@ function uploadExcel(req, res) {
                   });
                 } else {
                   console.log(`${results.affectedRows} row inserted into table table_names`);
+
+                  // @ Deepak (03/03/2023) Delete the uploaded file from the internal storage
+                  const filePath = req.file.path;
+
+                  fs.unlink(filePath, (err) => {
+                    if (err) {
+                      console.error(err);
+                      res.status(400).send({
+                        message: "File Not Deleted",
+                        error_code: "#5008 error in deleting file",
+                        status: false
+                      });
+                    } else {
+                      console.log(`File ${filePath} deleted successfully.`);
+                    }
+                  });
                 }
               });
 
@@ -282,8 +308,8 @@ function uploadExcel(req, res) {
 
 // Deepak (24/02/2023) Creating a function to get tables name from database table and sseending response to client side
 function getTableList(req, res) {
-
-  const selectedYear = req.body.year
+  const selectedYear = req.query.year;
+  console.log(selectedYear);
   const sql = 'SELECT name FROM table_names Where years=' + selectedYear;
 
   connection.query(sql, (error, results) => {
@@ -302,7 +328,30 @@ function getTableList(req, res) {
   });
 }
 
+// Deepak (24/02/2023) Creating a function to get tables data from database via table name and sending response to client side
+function getTableListData(req, res) {
+  const selectedTable = req.query.getTable;
+  console.log(selectedTable);
+  const sql = `SELECT * FROM  ${selectedTable}`;
+
+  connection.query(sql, (error, results) => {
+    if (error) {
+      console.error(error);
+      res.status(400).send({
+        message: "cannot get selected table data",
+        error_code: "#5013 error in geting tables data",
+        status: false
+      });
+    } else {
+      console.log(results);
+      res.send(results);
+    }
+
+  });
+}
+
 module.exports = {
   uploadExcel,
-  getTableList
+  getTableList,
+  getTableListData
 };
