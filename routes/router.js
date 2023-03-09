@@ -29,6 +29,16 @@ router.get('/getTableData', (req, res) => {
   uploadFlie.getTableListData(req,res);
 });
 
+//@ Deepak ( 09/03/23 ) Initialize get route to get user details
+router.get('/User', async (req, res) => {
+  logIn.getUserDetails(req,res);
+});
+
+//@ Deepak ( 07/03/23 ) Initialize get route to get selected table data
+// router.get('/getUserDetails', (req, res) => {
+//   logIn.getUserDetails(req,res);
+// });
+
 router.post('/loginUser', (req, res) => {
   logIn.loginFile(req, res);
 });
