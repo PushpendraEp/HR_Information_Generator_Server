@@ -46,6 +46,7 @@ function uploadExcel(req, res) {
     // @ Deepak (24/02/2023) parsed month and year from body 
     const selectedMonth = req.body.selectedMonth;
     const selectedYear = req.body.selectedYear;
+    
     if (err) {
 
       res.status(400).send({
@@ -55,269 +56,174 @@ function uploadExcel(req, res) {
       });
     } else {
 
-      // @ Deepak (24/02/2023) removing (.ext) from filename to create a table name
-      const fname = path.basename(req.file.originalname, path.extname(req.file.originalname));;
+      // @ Deepak (01/03/2023) Checking File extension. If .ext(csv) read file and parse file data 
+      // Insert parrsed data into table
+      const results = [];
+      if (req.file.mimetype === 'text/csv') {
 
+        fs.createReadStream(req.file.path)
+          .pipe(csv())
+          .on('data', (filedata) => {
+            results.push(filedata);
+          
+          })
+          .on('end', () => {
+            // console.log(results);
 
+            const values = results.map((item) => [
+               item.emp_id, item.emp_name, item.emp_email, item.emp_contact_details, item.emp_designation, item.emp_role,
+                 item.technology, item.totalSalaryPayOut, item.basic, item.HRA, item.PF, item.Others, item.extras,
+              month = req.body.selectedMonth,
+              year = req.body.selectedYear
+            ]);
+            console.log(values);
+            // Deepak (07/03/2023) Get all data of selected month  and selected year, IF data exist
+            const selectQuery = `SELECT * FROM Emp_All_Details WHERE month = '${selectedMonth}' AND year = ${selectedYear}`;
 
-      // @ Deepak (24/02/2023) Concatenated table name with selected month and year
-      const table_name = `${selectedMonth}_${selectedYear}_${fname}`;
+            connection.query(selectQuery, (error, results, fields) => {
+              if (error) {
 
-      // @ Deepak (24/02/2023) getting a list of tables from database
-      const showTable = `SHOW TABLES LIKE '${table_name}'`;
+                res.status(400).send({
+                  message: 'Cannot Find The Details of Employees',
+                  error_code: "#5002 error in fetching table data",
+                  status: false
+                });
+              } else{
+            
+               // Deepak (07/03/2023) If data exists, delete existing data for the selected month and year
+              if (results.length > 0) {
+                const deleteQuery = `DELETE FROM Emp_All_Details WHERE month = '${selectedMonth}' AND year = ${selectedYear}`;
+            
+                connection.query(deleteQuery, (error, results, fields) => {
+                  if (error){
 
-      connection.query(showTable, function (err, result) {
-        if (err) {
-          res.status(400).send({
-            message: "cannot find a table name",
-            error_code: "#5002 error in fetching table from database",
-            status: false
-          });
+                    res.status(400).send({
+                      message: 'Selected Data Does Not Deleted',
+                      error_code: "#5003 error in deleting data in the table",
+                      status: false
+                    });
+                  }else{
+                    console.log(`Deleted ${results.affectedRows} rows`);
+                  }
+                });
+              }
+              }
 
-        };
+            // @ Deepak (01/03/2023) Insert data into table
+            let insertSql = `INSERT INTO Emp_All_Details (emp_id, emp_name, emp_email, emp_contact_details, emp_designation,
+                 emp_role, technology, totalSalaryPayOut, basic, HRA, PF, Others, extras,month, year) VALUES ? `;
+        
+            connection.query(insertSql, [values], (error, result) => {
+              if (error) {
+                console.error(error);
+                res.status(400).send({
+                  message: "incorrect data(row does not match)",
+                  error_code: "#5004 error in Inserting data into table",
+                  status: false
+                });
+              } else {
 
-        // @ Deepak (24/02/2023) Checking if table name exist in database or not
-        if (result.length === 0) {
+                console.log(`${result.affectedRows} rows inserted into table Emp_All_Details`);
+                // res.status(200).send({ message: 'Data Inserted successfully' });
 
-          // @ Deepak (24/02/2023) Table is not exists, Creating a new table in database and Inserting a new data in the table 
-          const createTableSql = `CREATE TABLE ${table_name} (emp_id INT(10), 
-          emp_name VARCHAR(255), totalSalaryPayOut VARCHAR(255), basic VARCHAR(255),
-           HRA VARCHAR(255), PF VARCHAR(255), Others VARCHAR(255))`;
-
-          connection.query(createTableSql, function (err, result) {
-            if (err) {
-              res.status(400).send({
-                message: "table not created ",
-                error_code: "#5003 error in creating table",
-                status: false
-              })
-            }
-            //  res.status(200).send({ message: 'Table Created successfully' });
-            console.log(`Table ${table_name} created`);
-            // Deepak (24/02/2023) Calling a function to insert data in table
-            insertDataIntoTable(table_name);
-          });
-        }
-        else {
-
-          // @ Deepak (24/02/2023) Table already exists, truncate the table and insert new data
-          const truncateTableQuery = `TRUNCATE TABLE ${table_name}`;
-
-          connection.query(truncateTableQuery, (error, result) => {
-            if (error) {
-              res.status(400).send({
-                message: "table not deleted",
-                error_code: "#5004 error in deleting data form existing table",
-                status: false
-              });
-
-            }
-            // res.status(200).json({ message: 'Data Deleted successfully' });
-            // Deepak (24/02/2023) Calling a function to insert data in table
-            insertDataIntoTable(table_name);
-          });
-        }
-      });
-
-      // @ Deepak (24/02/2023) Creating a function to insert file data in the table 
-      function insertDataIntoTable(table_name) {
-        const results = [];
-        // @ Deepak (01/03/2023) Checking uploaded file and Reading file data
-        if (!req.file) {
-          res.status(400).send({
-            message: "Unsupportedd file type",
-            error_code: "#5005 error in reading file (file not supported)",
-            status: false
-          });
-        };
-
-        // @ Deepak (01/03/2023) Checking File extension. If .ext(csv) read file and parse file data 
-        // Insert parrsed data into table
-        if (req.file.mimetype === 'text/csv') {
-
-          fs.createReadStream(req.file.path)
-            .pipe(csv())
-            .on('data', (filedata) => {
-              results.push(filedata);
-            })
-            .on('end', () => {
-              console.log(results);
-
-              // @ Deepak (01/03/2023) Insert data into table
-              let insertSql = `INSERT INTO ${table_name} (emp_id, emp_name, totalSalaryPayOut, basic, HRA, PF, Others) VALUES ? `;
-              const values = results.map((item) => [item.emp_id, item.emp_name, item.totalSalaryPayOut, item.basic, item.HRA, item.PF, item.Others]);
-              connection.query(insertSql, [values], (error, result) => {
-                if (error) {
-                  console.error(error);
-                  res.status(400).send({
-                    message: "incorrect data(row does not match)",
-                    error_code: "#5006 error in Inserting data into table",
-                    status: false
-                  });
-                } else {
-
-                  console.log(`${result.affectedRows} rows inserted into table ${table_name}`);
-                  res.status(200).send({ message: 'Data Inserted successfully' });
-
-                }
-
-              });
+              }
 
             });
-        }
-
-        // @ Deepak (01/03/2023) Checking File extension. If .ext(xlsx) read file and parse file data 
-        // Insert parsed data into table
-        else if (req.file.mimetype === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') {
-          const workbook = XLSX.readFile(req.file.path);
-          const sheetName = workbook.SheetNames[0];
-          const sheet = workbook.Sheets[sheetName];
-          const range = XLSX.utils.decode_range(sheet['!ref']);
-          range.s.r += 1;
-          sheet['!ref'] = XLSX.utils.encode_range(range);
-          const results = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-          console.log(results);
-
-          // @ Deepak (01/03/2023) Insert data into table        
-          let insertSql = `INSERT INTO ${table_name} (emp_id, emp_name, totalSalaryPayOut, basic, HRA, PF, Others) VALUES ? `;
-          connection.query(insertSql, [results], (error, result) => {
-            if (error) {
-              console.error(error);
-              res.status(400).send({
-                message: "incorrect data(row does not match)",
-                error_code: "#5007 error in Inserting data into table",
-                status: false
-              });
-            } else {
-
-              console.log(`${result.affectedRows} rows inserted into table ${table_name}`);
-              res.status(200).send({ message: 'Data Inserted successfully' });
-
-            }
 
           });
+        });
+      }
+    
+      // @ Deepak (01/03/2023) Checking File extension. If .ext(xlsx) read file and parse file data 
+      // Insert parsed data into table
+      else if (req.file.mimetype === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') {
+        const workbook = XLSX.readFile(req.file.path);
+        const sheetName = workbook.SheetNames[0];
+        const sheet = workbook.Sheets[sheetName];
+        const range = XLSX.utils.decode_range(sheet['!ref']);
+        range.s.r += 1;
+        sheet['!ref'] = XLSX.utils.encode_range(range);
+        const results = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+        console.log(results);
 
-        } else {
-          res.status(400).send('Invalid file type');
+        // @ Deepak (01/03/2023) Insert data into table
+        const values = results.map((item) => [
+          item[0], item[1], item[2], item[3], item[4], item[5], item[6], item[7], item[8], item[9], item[10], item[11], item[12],
+          month = req.body.selectedMonth,
+          year = req.body.selectedYear
+        ]);
+        console.log(values);
+        // Deepak (07/03/2023) Get all data of selected month  and selected year, IF data exist
+        const selectQuery = `SELECT * FROM Emp_All_Details WHERE month = '${selectedMonth}' AND year = ${selectedYear}`;
+
+        connection.query(selectQuery, (error, results, fields) => {
+          if (error)  {
+
+            res.status(400).send({
+              message: 'Cannot Find The Details of Employees',
+              error_code: "#5005 error in fetching table data",
+              status: false
+            });
+          }else{
+        
+          // // Deepak (07/03/2023) If data exists, delete existing data for the selected month and year
+          if (results.length > 0) {
+            const deleteQuery = `DELETE FROM Emp_All_Details WHERE month = '${selectedMonth}' AND year = ${selectedYear}`;
+        
+            connection.query(deleteQuery, (error, results, fields) => {
+              if (error){
+
+                res.status(400).send({
+                  message: 'Selected Data Does Not Deleted',
+                  error_code: "#5006 error in deleting data in the table",
+                  status: false
+                });
+              }else{
+                console.log(`Deleted ${results.affectedRows} rows`);
+              }
+        
+            });
+          }
         }
 
-
-        // @ Deepak (24/02/2023) Calling a function to insert tables name in a table
-        insertTablesIntoTable(table_name);
-      };
-
-      const tableName = `${table_name}`;
-      const month = `${selectedMonth}`
-      const year = `${selectedYear}`
-
-      // @ Deepak (24/02/2023) Creating a function to insert tables name in a table
-      function insertTablesIntoTable() {
-
-        // @ Deepak (03/03/2023) Checking Table Name iF already exist or not
-        const checkQuery = `SELECT COUNT(*) AS count FROM table_names WHERE name = '${tableName}'`;
-        connection.query(checkQuery, (err, results) => {
-          if (err) {
-            console.error(err);
+        // Deepak (07/03/2023) Inserting data into table
+        let insertSql = `INSERT INTO Emp_All_Details (emp_id, emp_name, emp_email, emp_contact_details, emp_designation, emp_role, technology, totalSalaryPayOut, basic, HRA, PF, Others, extras,month, year) VALUES ? `;
+        connection.query(insertSql, [values], (error, result) => {
+          if (error) {
+            console.error(error);
             res.status(400).send({
-              message: "Can Not Fetch the File frrom List ",
-              error_code: "#5009 Error in Checking File Name",
+              message: "incorrect data(row does not match)",
+              error_code: "#5007 error in Inserting data into table",
               status: false
             });
           } else {
-            const count = results[0].count;
 
-            // @ Deepak (03/03/2023) IF table Name exist, then update table row
-            if (count > 0) {
-              // @ Deepak (03/03/2023) The name already exists, so update the row
-              const updateQuery = `UPDATE table_names SET name = '${tableName}' WHERE name = '${tableName}'`;
-              connection.query(updateQuery, (err, results) => {
-                if (err) {
-                  console.error(err);
-                  res.status(400).send({
-                    message: "Table Data does Not Updated",
-                    error_code: "#5010 Error in Updateding File Data",
-                    status: false
-                  });
-                } else {
-                  console.log(`Name ${tableName} updated successfully.`);
+            console.log(`${result.affectedRows} rows inserted into table Emp_All_Details`);
 
-                   // @ Deepak (03/03/2023) Delete the uploaded file from the internal storage
-                   const filePath = req.file.path;
-
-                   fs.unlink(filePath, (err) => {
-                     if (err) {
-                       console.error(err);
-                       res.status(400).send({
-                         message: "File Not Deleted",
-                         error_code: "#5008 error in deleting file",
-                         status: false
-                       });
-                     } else {
-                       console.log(`File ${filePath} deleted successfully.`);
-                     }
-                   });
-                }
-              });
-            } else {
-
-              // @ Deepak (03/03/2023) The name doesn't exist, so insert a new row in the table
-              const sql = `INSERT INTO table_names (name,years,months) VALUES (?,?,?)`;
-              const values = [tableName, year, month];
-              console.log(values);
-
-              connection.query(sql, values, (error, results) => {
-                if (error) {
-                  console.error(error);
-                  res.status(400).send({
-                    message: "incorrect data(row does not stored)",
-                    error_code: "#5011 error in geting data",
-                    status: false
-                  });
-                } else {
-                  console.log(`${results.affectedRows} row inserted into table table_names`);
-
-                  // @ Deepak (03/03/2023) Delete the uploaded file from the internal storage
-                  const filePath = req.file.path;
-
-                  fs.unlink(filePath, (err) => {
-                    if (err) {
-                      console.error(err);
-                      res.status(400).send({
-                        message: "File Not Deleted",
-                        error_code: "#5008 error in deleting file",
-                        status: false
-                      });
-                    } else {
-                      console.log(`File ${filePath} deleted successfully.`);
-                    }
-                  });
-                }
-              });
-
-
-            }
           }
+
         });
+      });
 
       }
-
+      res.status(200).send({ message: 'Data Inserted successfully' });
     }
-  });
+    });
+  }
 
-}
-
-// Deepak (24/02/2023) Creating a function to get tables name from database table and sseending response to client side
+// Deepak (07/03/2023) Creating a function to get tables name from database table and sseending response to client side
 function getTableList(req, res) {
-  const selectedYear = req.query.year;
-  console.log(selectedYear);
-  const sql = 'SELECT name FROM table_names Where years=' + selectedYear;
+
+  const selectedMonth=req.query.selectedMonth;
+  const selectedYear=req.query.selectedYear;
+  const sql = `SELECT * FROM Emp_All_Details WHERE month ='${selectedMonth}' AND year = '${selectedYear}'`;
 
   connection.query(sql, (error, results) => {
     if (error) {
       console.error(error);
       res.status(400).send({
-        message: "cannot get tables list",
-        error_code: "#5012 error in geting tables list",
+        message: "cannot get table data of selected month and year",
+        error_code: "#5008 error in geting tables data",
         status: false
       });
     } else {
@@ -328,18 +234,19 @@ function getTableList(req, res) {
   });
 }
 
-// Deepak (24/02/2023) Creating a function to get tables data from database via table name and sending response to client side
+// Deepak (07/03/2023) Creating a function to get tables data from database via table name and sending response to client side
 function getTableListData(req, res) {
-  const selectedTable = req.query.getTable;
-  console.log(selectedTable);
-  const sql = `SELECT * FROM  ${selectedTable}`;
+  const selectedYear=req.query.selectedMonth;
+  // const selectedTable = req.query.getTable;
+  // console.log(selectedTable);
+  const sql = `SELECT * FROM  Emp_All_Details WHERE year = '${selectedYear}'`;
 
   connection.query(sql, (error, results) => {
     if (error) {
       console.error(error);
       res.status(400).send({
-        message: "cannot get selected table data",
-        error_code: "#5013 error in geting tables data",
+        message: "cannot get selected table data of selected year",
+        error_code: "#5009 error in geting tables data",
         status: false
       });
     } else {
@@ -349,6 +256,7 @@ function getTableListData(req, res) {
 
   });
 }
+
 
 module.exports = {
   uploadExcel,
