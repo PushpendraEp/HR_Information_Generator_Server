@@ -72,7 +72,7 @@ const loginFile = (req, res) => {
 // @ Deepak  (09/03/2023) sending user details of selected user email
 
 function getUserDetails(req, res) {
-    const userEmail = req.params.userEmail;
+    const userEmail = req.params.email;
     const sql = `SELECT First_name, last_name,Email,gender,mobile_no,DOB FROM user WHERE Email = '${userEmail}'`;
   
     connection.query(sql, (error, results) => {

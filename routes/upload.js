@@ -214,8 +214,8 @@ function uploadExcel(req, res) {
 // Deepak (07/03/2023) Creating a function to get tables name from database table and sseending response to client side
 function getTableList(req, res) {
 
-  const selectedMonth=req.query.selectedMonth;
-  const selectedYear=req.query.selectedYear;
+  const selectedMonth=req.query.month;
+  const selectedYear=req.query.year;
   const sql = `SELECT * FROM Emp_All_Details WHERE month ='${selectedMonth}' AND year = '${selectedYear}'`;
 
   connection.query(sql, (error, results) => {
@@ -236,7 +236,8 @@ function getTableList(req, res) {
 
 // Deepak (07/03/2023) Creating a function to get tables data from database via table name and sending response to client side
 function getTableListData(req, res) {
-  const selectedYear=req.query.selectedMonth;
+  const selectedYear=req.query.year;
+  console.log(selectedYear);
   // const selectedTable = req.query.getTable;
   // console.log(selectedTable);
   const sql = `SELECT * FROM  Emp_All_Details WHERE year = '${selectedYear}'`;

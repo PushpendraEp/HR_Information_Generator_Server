@@ -2,8 +2,8 @@ const express = require('express'),
   router = express.Router(),
   connection = require('../db/connection'),
   uploadFlie = require('./upload'),
-  // getTable=require('./getTable')
   logIn = require('./logIn'),
+  payslipGenerator=require('./payslip_generator')
   register = require('./userRegister'),
   { verifyToken } = require('./verifyToken');
 
@@ -32,6 +32,11 @@ router.get('/getTableData', (req, res) => {
 //@ Deepak ( 09/03/23 ) Initialize get route to get user details
 router.get('/User', async (req, res) => {
   logIn.getUserDetails(req,res);
+});
+
+//@ Deepak ( 09/03/23 ) Initialize get route to get employee data
+router.get('/payslip', async (req, res) => {
+  payslipGenerator.getTableListDataofEmployee(req,res);
 });
 
 //@ Deepak ( 07/03/23 ) Initialize get route to get selected table data
