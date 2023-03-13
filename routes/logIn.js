@@ -43,11 +43,11 @@ const loginFile = (req, res) => {
                         const userDetails = {
                             user_Email: user.Email,
                             user_pass: user.password
-                          };
+                        };
                         // @ Shubham (17/02/2023) JWT is used for authontication it always genrate a unique token for authorized user
                         const token = jwt.sign(
-                            userDetails , "admintoken", { expiresIn: '1h' });
-    
+                            userDetails, "admintoken", { expiresIn: '1h' });
+
                         res.status(200).json({
                             message: "log in successfull", status: true, token: token
                         })
@@ -69,27 +69,48 @@ const loginFile = (req, res) => {
     }
 }
 
-// @ Deepak  (09/03/2023) sending user details of selected user email
+// @ Deepak (09/03/2023) sending user details of selected user email
+//                       Getting token from client and parsed email from 
 
 function getUserDetails(req, res) {
-    const userEmail = req.params.email;
-    const sql = `SELECT First_name, last_name,Email,gender,mobile_no,DOB FROM user WHERE Email = '${userEmail}'`;
-  
-    connection.query(sql, (error, results) => {
-      if (error) {
-        console.error(error);
-        res.status(400).send({
-          message: "cannot get user table data of selected user",
-          error_code: "#5111 error in geting user tables data",
-          status: false
-        });
-      } else {
-        console.log(results);
-        res.send(results);
-      }
-  
-    });
-  }
+    const token = req.params.token;
+    // console.log(token);
 
-module.exports = { loginFile,
-                   getUserDetails }
+    // @ Deepak (13/03/2023) varify token if token is wrong throw an error or else decode toekn and get user email 
+    jwt.verify(token, "admintoken", (error, decoded) => {
+        if (error) {
+            console.error(error);
+            res.status(400).send({
+                message: "cannot get selected table data of selected emp_id",
+                error_code: "#5011 error in geting tables data",
+                status: false
+            });
+        } else {
+            const userEmail = decoded.user_Email;
+            console.log(userEmail);
+
+            // @ Deepak (13/03/2023) select user from table by using useremail
+            const sql = `SELECT First_name, last_name,Email,gender,mobile_no,DOB FROM user WHERE Email = '${userEmail}'`;
+
+            connection.query(sql, (error, results) => {
+                if (error) {
+                    console.error(error);
+                    res.status(400).send({
+                        message: "cannot get user table data of selected email",
+                        error_code: "#5012 error in geting user data",
+                        status: false
+                    });
+                } else {
+                    console.log(results);
+                    res.send(results);
+                }
+
+            });
+        }
+    });
+}
+
+module.exports = {
+    loginFile,
+    getUserDetails
+}
