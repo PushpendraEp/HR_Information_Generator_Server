@@ -39,6 +39,11 @@ router.get('/payslip', async (req, res) => {
   payslipGenerator.getTableListDataofEmployee(req,res);
 });
 
+//@ Deepak ( 13/03/23 ) Initialize get route to get employee data
+router.put('/updateUser', async (req, res) => {
+  logIn.updateUserDetails(req,res);
+});
+
 //@ Deepak ( 07/03/23 ) Initialize get route to get selected table data
 // router.get('/getUserDetails', (req, res) => {
 //   logIn.getUserDetails(req,res);
