@@ -57,7 +57,7 @@ function uploadExcel(req, res) {
     } else {
 
       // @ Deepak (01/03/2023) Checking File extension. If .ext(csv) read file and parse file data 
-      // Insert parrsed data into table
+      //                       Insert parrsed data into table
       const results = [];
       if (req.file.mimetype === 'text/csv') {
 
@@ -125,6 +125,22 @@ function uploadExcel(req, res) {
 
                 console.log(`${result.affectedRows} rows inserted into table Emp_All_Details`);
                 // res.status(200).send({ message: 'Data Inserted successfully' });
+                res.status(200).send({ message: 'Data Inserted successfully', status: true });
+                const filePath = req.file.path;
+                            // Delete the uploaded file from the internal storage
+                            fs.unlink(filePath, (err) => {
+                              if (err) {
+                                console.error(err);
+                                res.status(400).send({
+                                  message: "uploaded file is not deleted successsfully!!! ",
+                                  error_code: "#5005 error in deleting file",
+                                  status: false
+                                });
+                              }else{
+                                console.log(`File ${filePath} deleted successfully.`);
+                              }
+                              
+                            });
 
               }
 
@@ -161,7 +177,7 @@ function uploadExcel(req, res) {
 
             res.status(400).send({
               message: 'Cannot Find The Details of Employees',
-              error_code: "#5005 error in fetching table data",
+              error_code: "#5006 error in fetching table data",
               status: false
             });
           }else{
@@ -175,7 +191,7 @@ function uploadExcel(req, res) {
 
                 res.status(400).send({
                   message: 'Selected Data Does Not Deleted',
-                  error_code: "#5006 error in deleting data in the table",
+                  error_code: "#5007 error in deleting data in the table",
                   status: false
                 });
               }else{
@@ -193,12 +209,28 @@ function uploadExcel(req, res) {
             console.error(error);
             res.status(400).send({
               message: "incorrect data(row does not match)",
-              error_code: "#5007 error in Inserting data into table",
+              error_code: "#5008 error in Inserting data into table",
               status: false
             });
           } else {
 
             console.log(`${result.affectedRows} rows inserted into table Emp_All_Details`);
+            res.status(200).send({ message: 'Data Inserted successfully', status: true });
+            const filePath = req.file.path;
+                        // Delete the uploaded file from the internal storage
+                        fs.unlink(filePath, (err) => {
+                          if (err) {
+                            console.error(err);
+                            res.status(400).send({
+                              message: "uploaded file is not deleted successsfully!!! ",
+                              error_code: "#5009 error in deleting file",
+                              status: false
+                            });
+                          }else{
+                            console.log(`File ${filePath} deleted successfully.`);
+                          }
+                         
+                        });
 
           }
 
@@ -206,7 +238,7 @@ function uploadExcel(req, res) {
       });
 
       }
-      res.status(200).send({ message: 'Data Inserted successfully' });
+     
     }
     });
   }
@@ -223,12 +255,12 @@ function getTableList(req, res) {
       console.error(error);
       res.status(400).send({
         message: "cannot get table data of selected month and year",
-        error_code: "#5008 error in geting tables data",
+        error_code: "#5010 error in geting tables data",
         status: false
       });
     } else {
       console.log(results);
-      res.send(results);
+      res.status(200).send({results:results, status:true});
     }
 
   });
@@ -247,12 +279,12 @@ function getTableListData(req, res) {
       console.error(error);
       res.status(400).send({
         message: "cannot get selected table data of selected year",
-        error_code: "#5009 error in geting tables data",
+        error_code: "#5011 error in geting tables data",
         status: false
       });
     } else {
       console.log(results);
-      res.send(results);
+      res.status(200).send({results:results, status:true});
     }
 
   });

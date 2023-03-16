@@ -1,6 +1,12 @@
 const connection = require('../db/connection'),
     jwt = require('jsonwebtoken'),
+    body_parser = require('body-parser'),
     bcrypt = require('bcrypt');
+    const express = require('express');
+    const app = express();
+
+    app.use(body_parser.json());
+    app.use(body_parser.urlencoded({ extended: true }));
 
 /*
    @ Shubham (17/02/2023) 
@@ -46,7 +52,7 @@ const loginFile = (req, res) => {
                         };
                         // @ Shubham (17/02/2023) JWT is used for authontication it always genrate a unique token for authorized user
                         const token = jwt.sign(
-                            userDetails, "admintoken", { expiresIn: '1h' });
+                            userDetails, "admintoken", { expiresIn: '5h' });
 
                         res.status(200).json({
                             message: "log in successfull", status: true, token: token
@@ -69,20 +75,20 @@ const loginFile = (req, res) => {
     }
 }
 
-// @ Deepak (09/03/2023) sending user details of selected user email
+// @ Deepak (09/03/2023) created a function to sending user details of selected user email
 //                       Getting token from client and parsed email from 
 
 function getUserDetails(req, res) {
-    const token = req.params.token;
-    // console.log(token);
+    const token = req.query.token;
+    console.log(token);
 
     // @ Deepak (13/03/2023) varify token if token is wrong throw an error or else decode toekn and get user email 
-    jwt.verify(token, "admintoken", (error, decoded) => {
+    jwt.verify(token, 'admintoken', (error, decoded) => {
         if (error) {
             console.error(error);
             res.status(400).send({
                 message: "cannot get selected table data of selected emp_id",
-                error_code: "#5011 error in geting tables data",
+                error_code: "#5013 error in geting tables data",
                 status: false
             });
         } else {
@@ -97,11 +103,11 @@ function getUserDetails(req, res) {
                     console.error(error);
                     res.status(400).send({
                         message: "cannot get user table data of selected email",
-                        error_code: "#5012 error in geting user data",
+                        error_code: "#5014 error in geting user data",
                         status: false
                     });
                 } else {
-                    console.log(results);
+                    // console.log(results);
                     res.send(results);
                 }
 
@@ -110,7 +116,40 @@ function getUserDetails(req, res) {
     });
 }
 
+// @ Deepak (16/03/2023) created a function to update user details of selected user id
+
+function updateUserDetails(req, res) {
+    const userID=req.query.id;
+    
+    const First_name = req.body[0].First_name;
+    const last_name = req.body[0].last_name;
+    const Email = req.body[0].Email;
+    const gender = req.body[0].gender;
+    const mobile_no = req.body[0].mobile_no;
+    const DOB = req.body[0].DOB;
+
+    // @ Deepak (13/03/2023) select user from table by using userid and update user data 
+    const sql = `UPDATE user SET First_name=?, last_name=?,Email=?,gender=?, mobile_no=?,  DOB=? WHERE id='${userID}'`; 
+  
+    connection.query(sql,[First_name, last_name,Email, gender, mobile_no, DOB], (error, results) => {
+        if (error) {
+            console.error(error);
+            res.status(400).send({
+                message: "user data from table is not updated",
+                error_code: "#5015 error in updateding user data",
+                status: false
+            });
+        } else {
+            // console.log(results);
+            res.send(results);
+        }
+
+    });
+}
+
+
 module.exports = {
     loginFile,
-    getUserDetails
+    getUserDetails,
+    updateUserDetails
 }

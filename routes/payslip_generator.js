@@ -35,13 +35,14 @@ function getTableListDataofEmployee(req, res) {
     const sql = `SELECT emp_id, emp_name, emp_email, emp_contact_details, basic, HRA, PF, Others 
     FROM Emp_All_Details 
     WHERE emp_id = '${selectedId}' AND month = '${selectedMonth}' AND year = ${selectedYear}`;
+    
 
     connection.query(sql, (error, results) => {
         if (error) {
             console.error(error);
             res.status(400).send({
                 message: "cannot get selected table data of selected emp_id",
-                error_code: "#5010 error in geting tables data",
+                error_code: "#5012 error in geting tables data",
                 status: false
             });
         } else {
