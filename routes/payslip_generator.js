@@ -32,9 +32,7 @@ function getTableListDataofEmployee(req, res) {
     const selectedYear = req.query.year;
 
     // Deepak (13/03/2023) getting selected employee details to generate payslip
-    const sql = `SELECT emp_id, emp_name, emp_email, emp_contact_details, basic, HRA, PF, Others 
-    FROM Emp_All_Details 
-    WHERE emp_id = '${selectedId}' AND month = '${selectedMonth}' AND year = ${selectedYear}`;
+    const sql = `SELECT emp_id, emp_name, emp_email, emp_contact_details, basic, HRA, PF, Others FROM Emp_All_Details WHERE emp_id = '${selectedId}' AND month = '${selectedMonth}' AND year = ${selectedYear}`;
     
 
     connection.query(sql, (error, results) => {
