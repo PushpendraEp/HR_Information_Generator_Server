@@ -13,7 +13,7 @@ bcrypt = require('bcrypt');
 
 //  @ Shubham (17/02/2023) This function is For the User Regiastration 
 const registerUser = async (req, res) => {
-    const { id, First_name, last_name, email, gender,mobile_no,DOB, password, passwordconfirm } = req.body
+    const { id, First_name, last_name, email, gender, mobile_no, DOB, password, passwordconfirm } = req.body
 
 
     var query = `select * from user where Email='${email}'`;
@@ -62,4 +62,5 @@ const registerUser = async (req, res) => {
         }
     })
 }
+
 module.exports = { registerUser }

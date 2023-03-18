@@ -44,7 +44,7 @@ function getTableListDataofEmployee(req, res) {
                 status: false
             });
         } else {
-            console.log(results);
+            // console.log(results);
             
             const basicPay = results[0].basic;
             const hra = results[0].HRA;
