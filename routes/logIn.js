@@ -88,7 +88,7 @@ function getUserDetails(req, res) {
             console.error(error);
             res.status(400).send({
                 message: "cannot get selected table data of selected emp_id",
-                error_code: "#5013 error in geting tables data",
+                error_code: "#5014 error in geting tables data",
                 status: false
             });
         } else {
@@ -103,12 +103,12 @@ function getUserDetails(req, res) {
                     console.error(error);
                     res.status(400).send({
                         message: "cannot get user table data of selected email",
-                        error_code: "#5014 error in geting user data",
+                        error_code: "#5015 error in geting user data",
                         status: false
                     });
                 } else {
                     // console.log(results);
-                    res.send(results);
+                    res.status(200).send({ results, status:true });
                 }
 
             });
@@ -135,12 +135,12 @@ function updateUserDetails(req, res) {
             console.error(error);
             res.status(400).send({
                 message: "user data from table is not updated",
-                error_code: "#5015 error in updateding user data",
+                error_code: "#5016 error in updateding user data",
                 status: false
             });
         } else {
             // console.log(results);
-            res.send(results);
+            res.status(200).send({ results, status:true });
         }
 
     });

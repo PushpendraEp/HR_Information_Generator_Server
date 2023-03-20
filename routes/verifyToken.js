@@ -7,7 +7,7 @@
 
 function verifyToken(req, res, next) {
     const token = req.headers.authorization
-    console.log(token);
+    // console.log(token);
 
     //  @ Shubham (17/02/2023) if you didn`t send any token this if part will execute
     if (!token) {
@@ -23,7 +23,7 @@ function verifyToken(req, res, next) {
                 res.status(401).json({ message: 'Access denied', error_code: "#22 Invalid token You enter", status: false });
             } else {
                 req.user = decoded;
-                console.log(decoded)
+                // console.log(decoded)
                 next();
             }
         });

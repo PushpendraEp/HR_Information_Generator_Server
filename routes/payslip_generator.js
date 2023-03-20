@@ -6,8 +6,6 @@ const csv = require('csv-parser');
 const body_parser = require('body-parser');
 const fs = require('fs');
 const XLSX = require('xlsx');
-// const pdf = require('pdfkit');
-// const PDFDocument = require('pdfkit');
 const pdf = require("pdfkit-table");
 
 connection = require('../db/connection');
@@ -57,16 +55,18 @@ function getTableListDataofEmployee(req, res) {
 
             // // Deepak (13/03/2023) Generate PDF payslip of employee 
             const doc = new pdf();
+            // const doc = new PDFDocument();
 
             const filename = `payslip-${results[0].emp_id}.pdf`;
-            const filePath = path.join('public', filename);
+            const filePath = path.join(__dirname, 'public', filename);
+            const fileStream = fs.createWriteStream(filePath);
+                 doc.pipe(fileStream);
 
             doc.fontSize(18).text(`Engineer Philosophy Web Services`,  { align: 'center' })
             doc.font('Helvetica-Bold').fontSize(16);
             doc.text('Salary Slip', { align: 'center' }).moveDown();
             
-
-            doc.pipe(fs.createWriteStream(filePath));
+           
 
             doc.font('Helvetica').fontSize(14);
             doc.info.Title = `Salary Slip for ${results[0].emp_name}`;
@@ -109,11 +109,31 @@ function getTableListDataofEmployee(req, res) {
               doc.end();
 
               // Deepak (13/03/2023) sending response to client side
+              fileStream.on('error', () => {
+                res.status(404).send('File not found');
+              });
+              fileStream.on('open', () => {
+                // const file = fs.readFileSync(filePath);
+                res.status(200)
               res.setHeader('Content-Type', 'application/pdf');
               res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
-
-             const filestream = fs.createReadStream(filePath);
-             filestream.pipe(res);
+            //   res.send(file);
+             const filestream2 = fs.createReadStream(filePath);
+             filestream2.pipe(res);
+             
+            });
+            fileStream.on('finish', () => {
+            fs.unlink(filePath, (err) => {
+                if (err) {
+                  console.error(err);
+                  res.status(400).send({
+                    message: "generated PDF file is not deleted !!! ",
+                    error_code: "#5013 error in deleting file",
+                    status: false
+                  });
+                }
+            });
+        });
         }
 
     });
