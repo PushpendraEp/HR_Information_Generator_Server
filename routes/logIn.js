@@ -140,7 +140,7 @@ function updateUserDetails(req, res) {
             });
         } else {
             // console.log(results);
-            res.status(200).send({ results, status:true });
+            res.status(200).send({ results, status:true, message:"User Data Updated" });
         }
 
     });
