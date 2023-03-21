@@ -215,7 +215,7 @@ function uploadExcel(req, res) {
             } else {
 
               // console.log(`${result.affectedRows} rows inserted into table Emp_All_Details`);
-              res.status(200).send({ message: 'Data Inserted successfully', status: true });
+              
               const filePath = req.file.path;
               // Delete the uploaded file from the internal storage
               fs.unlink(filePath, (err) => {
@@ -231,7 +231,7 @@ function uploadExcel(req, res) {
                 }
 
               });
-
+              res.status(200).send({ message: 'File Uploaded successfully', status: true });
             }
 
           });
