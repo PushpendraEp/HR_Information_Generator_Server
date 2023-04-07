@@ -5,10 +5,7 @@ const cors = require('cors')
 const csv = require('csv-parser');
 const body_parser = require('body-parser');
 const fs = require('fs');
-const XLSX = require('xlsx');
-// const pdf = require("pdfkit-table");
 const pdf = require('pdfkit');
-const numberToWords = require('number-to-words');
 
 connection = require('../db/connection');
 
@@ -198,7 +195,6 @@ function getTableListDataofEmployee(req, res) {
         res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
         const filestream2 = fs.createReadStream(filePath);
         filestream2.pipe(res);
-
       });
       fileStream.on('finish', () => {
         fs.unlink(filePath, (err) => {
@@ -213,7 +209,6 @@ function getTableListDataofEmployee(req, res) {
         });
       });
     }
-
   });
 }
 
