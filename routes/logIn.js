@@ -146,7 +146,6 @@ function updateUserDetails(req, res) {
     });
 }
 
-
 module.exports = {
     loginFile,
     getUserDetails,

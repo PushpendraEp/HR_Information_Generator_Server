@@ -71,8 +71,8 @@ function uploadExcel(req, res) {
             // console.log(results);
 
             const values = results.map((item) => [
-              item.emp_id, item.emp_name, item.emp_email, item.emp_contact_details, item.emp_designation, item.emp_role,
-              item.technology, item.totalSalaryPayOut, item.basic, item.HRA, item.PF, item.Others, item.extras,
+              item.emp_id, item.emp_name, item.emp_email, item.emp_contact_details, item.emp_designation,
+              item.basic, item.HRA, item.Other_Allowances, item.PF, item.ESI, item.PT, item.IT, item.Company_Contribution_PF, item.Company_Contribution_ESI,
               month = req.body.selectedMonth,
               year = req.body.selectedYear
             ]);
@@ -110,8 +110,7 @@ function uploadExcel(req, res) {
               }
 
               // @ Deepak (01/03/2023) Insert data into table
-              let insertSql = `INSERT INTO Emp_All_Details (emp_id, emp_name, emp_email, emp_contact_details, emp_designation,
-                 emp_role, technology, totalSalaryPayOut, basic, HRA, PF, Others, extras,month, year) VALUES ? `;
+              let insertSql = `INSERT INTO Emp_All_Details (emp_id, emp_name, emp_email, emp_contact_details, emp_designation, basic, HRA, Other_Allowances, PF, ESI, PT, IT, Company_Contribution_PF, Company_Contribution_ESI ,month, year) VALUES ? `;
 
               connection.query(insertSql, [values], (error, result) => {
                 if (error) {
@@ -123,9 +122,9 @@ function uploadExcel(req, res) {
                   });
                 } else {
 
-                  // console.log(`${result.affectedRows} rows inserted into table Emp_All_Details`);
+                  console.log(`${result.affectedRows} rows inserted into table Emp_All_Details`);
                   // res.status(200).send({ message: 'Data Inserted successfully' });
-                  res.status(200).send({ message: 'Data Inserted successfully', status: true });
+                  // res.status(200).send({ message: 'Data Inserted successfully', status: true });
                   const filePath = req.file.path;
                   // Delete the uploaded file from the internal storage
                   fs.unlink(filePath, (err) => {
@@ -157,14 +156,27 @@ function uploadExcel(req, res) {
         const sheetName = workbook.SheetNames[0];
         const sheet = workbook.Sheets[sheetName];
         const range = XLSX.utils.decode_range(sheet['!ref']);
-        range.s.r += 1;
+        range.s.r +=0;
         sheet['!ref'] = XLSX.utils.encode_range(range);
         const results = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-        // console.log(results);
+        const headerRow = results[0];
+        const dataRows = results.slice(1);
+        const actualColumns =headerRow;
+
+        const expectedColumns = ["emp_id", "emp_name", "emp_email", "emp_contact_details", "emp_designation", "basic", "HRA","Other_Allowances", "PF", "ESI", "PT", "IT", "Company_Contribution_PF", "Company_Contribution_ESI"]
+
+        const missingColumns = expectedColumns.filter((column) => !actualColumns.includes(column));
+        if (missingColumns.length > 0) {
+          // Send response with dynamic message
+          const message = `The following columns are missing: ${missingColumns.join(', ')}`;
+          console.log(message);
+          res.status(400).send({ message });
+        }
+        // else{
 
         // @ Deepak (01/03/2023) Insert data into table
-        const values = results.map((item) => [
-          item[0], item[1], item[2], item[3], item[4], item[5], item[6], item[7], item[8], item[9], item[10], item[11], item[12],
+        const values = dataRows.map((item) => [
+          item[0], item[1], item[2], item[3], item[4], item[5], item[6], item[7], item[8], item[9], item[10], item[11], item[12], item[13],
           month = req.body.selectedMonth,
           year = req.body.selectedYear
         ]);
@@ -182,7 +194,7 @@ function uploadExcel(req, res) {
             });
           } else {
 
-            // // Deepak (07/03/2023) If data exists, delete existing data for the selected month and year
+            // Deepak (07/03/2023) If data exists, delete existing data for the selected month and year
             if (results.length > 0) {
               const deleteQuery = `DELETE FROM Emp_All_Details WHERE month = '${selectedMonth}' AND year = ${selectedYear}`;
 
@@ -203,8 +215,9 @@ function uploadExcel(req, res) {
           }
 
           // Deepak (07/03/2023) Inserting data into table
-          let insertSql = `INSERT INTO Emp_All_Details (emp_id, emp_name, emp_email, emp_contact_details, emp_designation, emp_role, technology, totalSalaryPayOut, basic, HRA, PF, Others, extras,month, year) VALUES ? `;
+          let insertSql = `INSERT INTO Emp_All_Details (emp_id, emp_name, emp_email, emp_contact_details, emp_designation, basic, HRA, Other_Allowances, PF, ESI, PT, IT, Company_Contribution_PF, Company_Contribution_ESI ,month, year) VALUES ? `;
           connection.query(insertSql, [values], (error, result) => {
+            // console.log(values);
             if (error) {
               console.error(error);
               res.status(400).send({
@@ -213,9 +226,9 @@ function uploadExcel(req, res) {
                 status: false
               });
             } else {
+              // console.log(result);
+              //  console.log(`${result.affectedRows} rows inserted into table Emp_All_Details`);
 
-              // console.log(`${result.affectedRows} rows inserted into table Emp_All_Details`);
-              
               const filePath = req.file.path;
               // Delete the uploaded file from the internal storage
               fs.unlink(filePath, (err) => {
@@ -231,15 +244,19 @@ function uploadExcel(req, res) {
                 }
 
               });
-              res.status(200).send({ message: 'File Uploaded successfully', status: true });
+
             }
 
           });
+        
         });
 
-      }
+      // }
 
     }
+    res.status(200).send({ message: 'File Uploaded successfully', status: true });
+  }
+  
   });
 }
 
