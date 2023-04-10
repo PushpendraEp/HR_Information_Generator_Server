@@ -4,7 +4,6 @@ const connection = require('../db/connection'),
     bcrypt = require('bcrypt');
 const express = require('express');
 const app = express();
-
 app.use(body_parser.json());
 app.use(body_parser.urlencoded({ extended: true }));
 

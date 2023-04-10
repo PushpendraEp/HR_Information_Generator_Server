@@ -28,8 +28,6 @@ var storage = multer.diskStorage({
 
   filename: function (req, file, cb) {
     cb(null, file.originalname);
-    // console.log(file.originalname);
-
   }
 });
 
@@ -53,6 +51,7 @@ function uploadExcel(req, res) {
       // @ Deepak (01/03/2023) Checking File extension. If .ext(csv) read file and parse file data 
       //                       Insert parrsed data into table
       const results = [];
+      let headers;
       // @ Deepak (24/02/2023) parsed month and year from body 
       const selectedMonth = req.body.selectedMonth;
       const selectedYear = req.body.selectedYear;
@@ -60,20 +59,33 @@ function uploadExcel(req, res) {
 
         fs.createReadStream(req.file.path)
           .pipe(csv())
+          .on('headers', (csvHeaders) => {
+            headers = csvHeaders;
+            console.log(headers);
+          })
           .on('data', (filedata) => {
             results.push(filedata);
-
+            console.log(filedata);
           })
           .on('end', () => {
-            // console.log(results);
 
+            // @ Deepak (10/04/2023) checking column of uploaded file with database column 
+                                // if column is missing send response to client with message
+            const expectedColumns = ["emp_id", "emp_name", "emp_email", "emp_contact_details", "emp_designation", "basic", "HRA", "Other_Allowances", "PF", "ESI", "PT", "IT", "Company_Contribution_PF", "Company_Contribution_ESI"]
+
+            const missingColumns = expectedColumns.filter((column) => !headers.includes(column));
+           if (missingColumns.length > 0) {
+          //@ Deepak (10/04/2023) Send response with dynamic message
+          const message = `The following columns are missing: ${missingColumns.join(', ')}`;
+          console.log(message);
+          res.status(400).send({ message });
+        }else {
             const values = results.map((item) => [
               item.emp_id, item.emp_name, item.emp_email, item.emp_contact_details, item.emp_designation,
               item.basic, item.HRA, item.Other_Allowances, item.PF, item.ESI, item.PT, item.IT, item.Company_Contribution_PF, item.Company_Contribution_ESI,
               month = req.body.selectedMonth,
               year = req.body.selectedYear
             ]);
-            // console.log(values);
             // Deepak (07/03/2023) Get all data of selected month  and selected year, IF data exist
             const selectQuery = `SELECT * FROM Emp_All_Details WHERE month = '${selectedMonth}' AND year = ${selectedYear}`;
 
@@ -86,8 +98,8 @@ function uploadExcel(req, res) {
                 });
               } else {
 
-                // Deepak (07/03/2023) If data exists, delete existing data for the selected month and year
                 if (results.length == 0) {
+                  // @ Deepak (01/03/2023) Insert data into table
                   let insertSql = `INSERT INTO Emp_All_Details (emp_id, emp_name, emp_email, emp_contact_details, emp_designation, basic, HRA, Other_Allowances, PF, ESI, PT, IT, Company_Contribution_PF, Company_Contribution_ESI ,month, year) VALUES ? `;
                   connection.query(insertSql, [values], (error, result) => {
                     if (error) {
@@ -99,10 +111,8 @@ function uploadExcel(req, res) {
                       });
                     } else {
                       console.log(`${result.affectedRows} rows inserted into table Emp_All_Details`);
-                      // res.status(200).send({ message: 'Data Inserted successfully' });
-                      // res.status(200).send({ message: 'Data Inserted successfully', status: true });
                       const filePath = req.file.path;
-                      // Delete the uploaded file from the internal storage
+                       // @ Deepak (10/04/2023) Delete the uploaded file from the internal storage
                       fs.unlink(filePath, (err) => {
                         if (err) {
                           console.error(err);
@@ -112,13 +122,15 @@ function uploadExcel(req, res) {
                             status: false
                           });
                         } else {
-                          // console.log(`File ${filePath} deleted successfully.`);
+                          res.status(200).send({ message: 'File Uploaded successfully', status: true });
                         }
                       });
                     }
                   });
                 }
                 else {
+                  // Deepak (07/03/2023) If data exists, delete existing data for the selected month and year
+
                   const deleteQuery = `DELETE FROM Emp_All_Details WHERE month = '${selectedMonth}' AND year = ${selectedYear}`;
                   connection.query(deleteQuery, (error, results, fields) => {
                     if (error) {
@@ -128,7 +140,6 @@ function uploadExcel(req, res) {
                         status: false
                       });
                     } else {
-                      // console.log(`Deleted ${results.affectedRows} rows`);
                       // @ Deepak (01/03/2023) Insert data into table
                       let insertSql = `INSERT INTO Emp_All_Details (emp_id, emp_name, emp_email, emp_contact_details, emp_designation, basic, HRA, Other_Allowances, PF, ESI, PT, IT, Company_Contribution_PF, Company_Contribution_ESI ,month, year) VALUES ? `;
                       connection.query(insertSql, [values], (error, result) => {
@@ -141,10 +152,8 @@ function uploadExcel(req, res) {
                           });
                         } else {
                           console.log(`${result.affectedRows} rows inserted into table Emp_All_Details`);
-                          // res.status(200).send({ message: 'Data Inserted successfully' });
-                          // res.status(200).send({ message: 'Data Inserted successfully', status: true });
                           const filePath = req.file.path;
-                          // Delete the uploaded file from the internal storage
+                          // @ Deepak (10/04/2023) Delete the uploaded file from the internal storage
                           fs.unlink(filePath, (err) => {
                             if (err) {
                               console.error(err);
@@ -154,7 +163,7 @@ function uploadExcel(req, res) {
                                 status: false
                               });
                             } else {
-                              // console.log(`File ${filePath} deleted successfully.`);
+                              res.status(200).send({ message: 'File Uploaded successfully', status: true });
                             }
                           });
                         }
@@ -164,6 +173,7 @@ function uploadExcel(req, res) {
                 }
               }
             });
+          }
           });
       }
 
@@ -179,13 +189,15 @@ function uploadExcel(req, res) {
         const results = XLSX.utils.sheet_to_json(sheet, { header: 1 });
         const headerRow = results[0];
         const dataRows = results.slice(1);
-        const actualColumns = headerRow;
+        const headers = headerRow;
 
         const expectedColumns = ["emp_id", "emp_name", "emp_email", "emp_contact_details", "emp_designation", "basic", "HRA", "Other_Allowances", "PF", "ESI", "PT", "IT", "Company_Contribution_PF", "Company_Contribution_ESI"]
+        // @ Deepak (10/04/2023) checking column of uploaded file with database column 
+                                // if column is missing send response to client with message
 
-        const missingColumns = expectedColumns.filter((column) => !actualColumns.includes(column));
+        const missingColumns = expectedColumns.filter((column) => !headers.includes(column));
         if (missingColumns.length > 0) {
-          // Send response with dynamic message
+          // @ Deepak (10/04/2023) Send response with dynamic message
           const message = `The following columns are missing: ${missingColumns.join(', ')}`;
           console.log(message);
           res.status(400).send({ message });
@@ -208,12 +220,11 @@ function uploadExcel(req, res) {
                 status: false
               });
             } else {
-              // Deepak (07/03/2023) If data exists, delete existing data for the selected month and year
+             
               if (results.length == 0) {
                 // Deepak (07/03/2023) Inserting data into table
                 let insertSql = `INSERT INTO Emp_All_Details (emp_id, emp_name, emp_email, emp_contact_details, emp_designation, basic, HRA, Other_Allowances, PF, ESI, PT, IT, Company_Contribution_PF, Company_Contribution_ESI ,month, year) VALUES ? `;
                 connection.query(insertSql, [values], (error, result) => {
-                  // console.log(values);
                   if (error) {
                     console.error(error);
                     res.status(400).send({
@@ -222,10 +233,8 @@ function uploadExcel(req, res) {
                       status: false
                     });
                   } else {
-                    // console.log(result);
-                    //  console.log(`${result.affectedRows} rows inserted into table Emp_All_Details`);
                     const filePath = req.file.path;
-                    // Delete the uploaded file from the internal storage
+                    // @ Deepak (10/04/2023) Delete the uploaded file from the internal storage
                     fs.unlink(filePath, (err) => {
                       if (err) {
                         console.error(err);
@@ -235,7 +244,6 @@ function uploadExcel(req, res) {
                           status: false
                         });
                       } else {
-                        // console.log(`File ${filePath} deleted successfully.`);
                         res.status(200).send({ message: 'File Uploaded successfully', status: true });
                       }
                     });
@@ -243,6 +251,7 @@ function uploadExcel(req, res) {
                 });
               }
               else {
+                 // Deepak (07/03/2023) If data exists, delete existing data for the selected month and year
                 const deleteQuery = `DELETE FROM Emp_All_Details WHERE month = '${selectedMonth}' AND year = ${selectedYear}`;
                 connection.query(deleteQuery, (error, results, fields) => {
                   if (error) {
@@ -252,11 +261,9 @@ function uploadExcel(req, res) {
                       status: false
                     });
                   } else {
-                    // console.log(`Deleted ${results.affectedRows} rows`);
                     // Deepak (07/03/2023) Inserting data into table
                     let insertSql = `INSERT INTO Emp_All_Details (emp_id, emp_name, emp_email, emp_contact_details, emp_designation, basic, HRA, Other_Allowances, PF, ESI, PT, IT, Company_Contribution_PF, Company_Contribution_ESI ,month, year) VALUES ? `;
                     connection.query(insertSql, [values], (error, result) => {
-                      // console.log(values);
                       if (error) {
                         console.error(error);
                         res.status(400).send({
@@ -265,10 +272,8 @@ function uploadExcel(req, res) {
                           status: false
                         });
                       } else {
-                        // console.log(result);
-                        //  console.log(`${result.affectedRows} rows inserted into table Emp_All_Details`);
                         const filePath = req.file.path;
-                        // Delete the uploaded file from the internal storage
+                        // @ Deepak (10/04/2023) Delete the uploaded file from the internal storage
                         fs.unlink(filePath, (err) => {
                           if (err) {
                             console.error(err);
@@ -302,15 +307,12 @@ function getEmpTableData(req, res) {
   const selectedMonth = req.query.month;
   const selectedYear = req.query.year;
   let query;
-
   if (selectedMonth) {
     query = `SELECT * FROM Emp_All_Details WHERE month ='${selectedMonth}' AND year = '${selectedYear}'`;
   }
   else {
     query = `SELECT * FROM  Emp_All_Details WHERE year = '${selectedYear}'`;
   }
-
-
   connection.query(query, (error, results) => {
     if (error) {
       console.error(error);
@@ -326,31 +328,6 @@ function getEmpTableData(req, res) {
 
   });
 }
-
-// Deepak (07/03/2023) Creating a function to get tables data from database via table name and sending response to client side
-// function getTableListData(req, res) {
-//   const selectedYear = req.query.year;
-//   console.log(selectedYear);
-//   // const selectedTable = req.query.getTable;
-//   // console.log(selectedTable);
-//   const sql = `SELECT * FROM  Emp_All_Details WHERE year = '${selectedYear}'`;
-
-//   connection.query(sql, (error, results) => {
-//     if (error) {
-//       console.error(error);
-//       res.status(400).send({
-//         message: "cannot get selected table data of selected year",
-//         error_code: "#5011 error in geting tables data",
-//         status: false
-//       });
-//     } else {
-//       console.log(results);
-//       res.status(200).send({ results: results, status: true });
-//     }
-
-//   });
-// }
-
 
 module.exports = {
   uploadExcel,
