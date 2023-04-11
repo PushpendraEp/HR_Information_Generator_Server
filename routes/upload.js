@@ -61,119 +61,133 @@ function uploadExcel(req, res) {
           .pipe(csv())
           .on('headers', (csvHeaders) => {
             headers = csvHeaders;
-            console.log(headers);
+            // console.log(headers);
           })
           .on('data', (filedata) => {
             results.push(filedata);
-            console.log(filedata);
+            // console.log(filedata);
           })
           .on('end', () => {
 
             // @ Deepak (10/04/2023) checking column of uploaded file with database column 
-                                // if column is missing send response to client with message
+            // if column is missing send response to client with message
             const expectedColumns = ["emp_id", "emp_name", "emp_email", "emp_contact_details", "emp_designation", "basic", "HRA", "Other_Allowances", "PF", "ESI", "PT", "IT", "Company_Contribution_PF", "Company_Contribution_ESI"]
 
             const missingColumns = expectedColumns.filter((column) => !headers.includes(column));
-           if (missingColumns.length > 0) {
-          //@ Deepak (10/04/2023) Send response with dynamic message
-          const message = `The following columns are missing: ${missingColumns.join(', ')}`;
-          console.log(message);
-          res.status(400).send({ message });
-        }else {
-            const values = results.map((item) => [
-              item.emp_id, item.emp_name, item.emp_email, item.emp_contact_details, item.emp_designation,
-              item.basic, item.HRA, item.Other_Allowances, item.PF, item.ESI, item.PT, item.IT, item.Company_Contribution_PF, item.Company_Contribution_ESI,
-              month = req.body.selectedMonth,
-              year = req.body.selectedYear
-            ]);
-            // Deepak (07/03/2023) Get all data of selected month  and selected year, IF data exist
-            const selectQuery = `SELECT * FROM Emp_All_Details WHERE month = '${selectedMonth}' AND year = ${selectedYear}`;
-
-            connection.query(selectQuery, (error, results, fields) => {
-              if (error) {
-                res.status(400).send({
-                  message: 'Cannot Find The Details of Employees',
-                  error_code: "#5002 error in fetching table data",
-                  status: false
-                });
-              } else {
-
-                if (results.length == 0) {
-                  // @ Deepak (01/03/2023) Insert data into table
-                  let insertSql = `INSERT INTO Emp_All_Details (emp_id, emp_name, emp_email, emp_contact_details, emp_designation, basic, HRA, Other_Allowances, PF, ESI, PT, IT, Company_Contribution_PF, Company_Contribution_ESI ,month, year) VALUES ? `;
-                  connection.query(insertSql, [values], (error, result) => {
-                    if (error) {
-                      console.error(error);
-                      res.status(400).send({
-                        message: "incorrect data(row does not match)",
-                        error_code: "#5004 error in Inserting data into table",
-                        status: false
-                      });
-                    } else {
-                      console.log(`${result.affectedRows} rows inserted into table Emp_All_Details`);
-                      const filePath = req.file.path;
-                       // @ Deepak (10/04/2023) Delete the uploaded file from the internal storage
-                      fs.unlink(filePath, (err) => {
-                        if (err) {
-                          console.error(err);
-                          res.status(400).send({
-                            message: "uploaded file is not deleted successsfully!!! ",
-                            error_code: "#5005 error in deleting file",
-                            status: false
-                          });
-                        } else {
-                          res.status(200).send({ message: 'File Uploaded successfully', status: true });
-                        }
-                      });
-                    }
+            if (missingColumns.length > 0) {
+              //@ Deepak (10/04/2023) Send response with dynamic message
+              const message = `The following columns are missing: ${missingColumns.join(', ')}`;
+              // console.log(message);
+              const filePath = req.file.path;
+              // @ Deepak (10/04/2023) Delete the uploaded file from the internal storage
+              fs.unlink(filePath, (err) => {
+                if (err) {
+                  console.error(err);
+                  res.status(400).send({
+                    message: "uploaded file is not deleted successsfully!!! ",
+                    error_code: "#5009 error in deleting file",
+                    status: false
                   });
+                } else {
+                  res.status(400).send({ message });
                 }
-                else {
-                  // Deepak (07/03/2023) If data exists, delete existing data for the selected month and year
+              });
+              // res.status(400).send({ message });
+            } else {
+              const values = results.map((item) => [
+                item.emp_id, item.emp_name, item.emp_email, item.emp_contact_details, item.emp_designation,
+                item.basic, item.HRA, item.Other_Allowances, item.PF, item.ESI, item.PT, item.IT, item.Company_Contribution_PF, item.Company_Contribution_ESI,
+                month = req.body.selectedMonth,
+                year = req.body.selectedYear
+              ]);
+              // Deepak (07/03/2023) Get all data of selected month  and selected year, IF data exist
+              const selectQuery = `SELECT * FROM Emp_All_Details WHERE month = '${selectedMonth}' AND year = ${selectedYear}`;
 
-                  const deleteQuery = `DELETE FROM Emp_All_Details WHERE month = '${selectedMonth}' AND year = ${selectedYear}`;
-                  connection.query(deleteQuery, (error, results, fields) => {
-                    if (error) {
-                      res.status(400).send({
-                        message: 'Selected Data Does Not Deleted',
-                        error_code: "#5003 error in deleting data in the table",
-                        status: false
-                      });
-                    } else {
-                      // @ Deepak (01/03/2023) Insert data into table
-                      let insertSql = `INSERT INTO Emp_All_Details (emp_id, emp_name, emp_email, emp_contact_details, emp_designation, basic, HRA, Other_Allowances, PF, ESI, PT, IT, Company_Contribution_PF, Company_Contribution_ESI ,month, year) VALUES ? `;
-                      connection.query(insertSql, [values], (error, result) => {
-                        if (error) {
-                          console.error(error);
-                          res.status(400).send({
-                            message: "incorrect data(row does not match)",
-                            error_code: "#5004 error in Inserting data into table",
-                            status: false
-                          });
-                        } else {
-                          console.log(`${result.affectedRows} rows inserted into table Emp_All_Details`);
-                          const filePath = req.file.path;
-                          // @ Deepak (10/04/2023) Delete the uploaded file from the internal storage
-                          fs.unlink(filePath, (err) => {
-                            if (err) {
-                              console.error(err);
-                              res.status(400).send({
-                                message: "uploaded file is not deleted successsfully!!! ",
-                                error_code: "#5005 error in deleting file",
-                                status: false
-                              });
-                            } else {
-                              res.status(200).send({ message: 'File Uploaded successfully', status: true });
-                            }
-                          });
-                        }
-                      });
-                    }
+              connection.query(selectQuery, (error, results, fields) => {
+                if (error) {
+                  res.status(400).send({
+                    message: 'Cannot Find The Details of Employees',
+                    error_code: "#5002 error in fetching table data",
+                    status: false
                   });
+                } else {
+
+                  if (results.length == 0) {
+                    // @ Deepak (01/03/2023) Insert data into table
+                    let insertSql = `INSERT INTO Emp_All_Details (emp_id, emp_name, emp_email, emp_contact_details, emp_designation, basic, HRA, Other_Allowances, PF, ESI, PT, IT, Company_Contribution_PF, Company_Contribution_ESI ,month, year) VALUES ? `;
+                    connection.query(insertSql, [values], (error, result) => {
+                      if (error) {
+                        console.error(error);
+                        res.status(400).send({
+                          message: "incorrect data(row does not match)",
+                          error_code: "#5004 error in Inserting data into table",
+                          status: false
+                        });
+                      } else {
+                        console.log(`${result.affectedRows} rows inserted into table Emp_All_Details`);
+                        const filePath = req.file.path;
+                        // @ Deepak (10/04/2023) Delete the uploaded file from the internal storage
+                        fs.unlink(filePath, (err) => {
+                          if (err) {
+                            console.error(err);
+                            res.status(400).send({
+                              message: "uploaded file is not deleted successsfully!!! ",
+                              error_code: "#5005 error in deleting file",
+                              status: false
+                            });
+                          } else {
+                            res.status(200).send({ message: 'File Uploaded successfully', status: true });
+                          }
+                        });
+                      }
+                    });
+                  }
+                  else {
+                    // Deepak (07/03/2023) If data exists, delete existing data for the selected month and year
+
+                    const deleteQuery = `DELETE FROM Emp_All_Details WHERE month = '${selectedMonth}' AND year = ${selectedYear}`;
+                    connection.query(deleteQuery, (error, results, fields) => {
+                      if (error) {
+                        res.status(400).send({
+                          message: 'Selected Data Does Not Deleted',
+                          error_code: "#5003 error in deleting data in the table",
+                          status: false
+                        });
+                      } else {
+                        // @ Deepak (01/03/2023) Insert data into table
+                        let insertSql = `INSERT INTO Emp_All_Details (emp_id, emp_name, emp_email, emp_contact_details, emp_designation, basic, HRA, Other_Allowances, PF, ESI, PT, IT, Company_Contribution_PF, Company_Contribution_ESI ,month, year) VALUES ? `;
+                        connection.query(insertSql, [values], (error, result) => {
+                          if (error) {
+                            console.error(error);
+                            res.status(400).send({
+                              message: "incorrect data(row does not match)",
+                              error_code: "#5004 error in Inserting data into table",
+                              status: false
+                            });
+                          } else {
+                            console.log(`${result.affectedRows} rows inserted into table Emp_All_Details`);
+                            const filePath = req.file.path;
+                            // @ Deepak (10/04/2023) Delete the uploaded file from the internal storage
+                            fs.unlink(filePath, (err) => {
+                              if (err) {
+                                console.error(err);
+                                res.status(400).send({
+                                  message: "uploaded file is not deleted successsfully!!! ",
+                                  error_code: "#5005 error in deleting file",
+                                  status: false
+                                });
+                              } else {
+                                res.status(200).send({ message: 'File Uploaded successfully', status: true });
+                              }
+                            });
+                          }
+                        });
+                      }
+                    });
+                  }
                 }
-              }
-            });
-          }
+              });
+            }
           });
       }
 
@@ -193,14 +207,28 @@ function uploadExcel(req, res) {
 
         const expectedColumns = ["emp_id", "emp_name", "emp_email", "emp_contact_details", "emp_designation", "basic", "HRA", "Other_Allowances", "PF", "ESI", "PT", "IT", "Company_Contribution_PF", "Company_Contribution_ESI"]
         // @ Deepak (10/04/2023) checking column of uploaded file with database column 
-                                // if column is missing send response to client with message
+        // if column is missing send response to client with message
 
         const missingColumns = expectedColumns.filter((column) => !headers.includes(column));
         if (missingColumns.length > 0) {
           // @ Deepak (10/04/2023) Send response with dynamic message
           const message = `The following columns are missing: ${missingColumns.join(', ')}`;
-          console.log(message);
-          res.status(400).send({ message });
+          // console.log(message);
+          const filePath = req.file.path;
+          // @ Deepak (10/04/2023) Delete the uploaded file from the internal storage
+          fs.unlink(filePath, (err) => {
+            if (err) {
+              console.error(err);
+              res.status(400).send({
+                message: "uploaded file is not deleted successsfully!!! ",
+                error_code: "#5009 error in deleting file",
+                status: false
+              });
+            } else {
+              res.status(400).send({ message });
+            }
+          });
+
         }
         else {
           // @ Deepak (01/03/2023) Insert data into table
@@ -220,7 +248,7 @@ function uploadExcel(req, res) {
                 status: false
               });
             } else {
-             
+
               if (results.length == 0) {
                 // Deepak (07/03/2023) Inserting data into table
                 let insertSql = `INSERT INTO Emp_All_Details (emp_id, emp_name, emp_email, emp_contact_details, emp_designation, basic, HRA, Other_Allowances, PF, ESI, PT, IT, Company_Contribution_PF, Company_Contribution_ESI ,month, year) VALUES ? `;
@@ -251,7 +279,7 @@ function uploadExcel(req, res) {
                 });
               }
               else {
-                 // Deepak (07/03/2023) If data exists, delete existing data for the selected month and year
+                // Deepak (07/03/2023) If data exists, delete existing data for the selected month and year
                 const deleteQuery = `DELETE FROM Emp_All_Details WHERE month = '${selectedMonth}' AND year = ${selectedYear}`;
                 connection.query(deleteQuery, (error, results, fields) => {
                   if (error) {
