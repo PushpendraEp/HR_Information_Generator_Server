@@ -4,6 +4,7 @@ const express = require('express'),
   logIn = require('./logIn'),
   payslipGenerator=require('./payslip_generator'),
   register = require('./userRegister'),
+  getOtp=require('./resetPassword')
   verifyToken = require('./verifyToken');
 
 //@ Pushpendra ( 25/02/23 ) Initialize first route
@@ -55,5 +56,17 @@ router.post('/loginUser', (req, res) => {
 router.post('/registerUser', (req, res) => {
   register.registerUser(req, res);
 });
+
+router.post('/getOtp',(req, res)=>{
+   getOtp.getUserOtp(req, res)
+})
+
+router.post('/verify-otp', (req, res) => {
+  getOtp.verifyOtp(req,res);
+});
+
+router.post('/reset-password', (req, res) => {
+  getOtp.resetPassword(req, res)
+})
 
 module.exports = router;

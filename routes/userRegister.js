@@ -39,7 +39,7 @@ const registerUser = async (req, res) => {
                     // @ Shubham (17/02/2023) bcrypt.hash will incript your code as un readable formate 
                     // @ Deepak (07/03/2023) created some changes in query
                     let hashpassword = await bcrypt.hash(password, 8);
-                    var query = `insert into user values('${id}','${First_name}','${last_name}','${email}','${gender}','${mobile_no}','${DOB}','${hashpassword}')`
+                    var query = `insert into user(id, First_name, last_name, Email, gender, mobile_no, DOB, password) values('${id}','${First_name}','${last_name}','${email}','${gender}','${mobile_no}','${DOB}','${hashpassword}')`
                     connection.query(query, (error, result) => {
                         if (error) {
                             res.status(400).send({
