@@ -6,13 +6,11 @@ const csv = require('csv-parser');
 const body_parser = require('body-parser');
 const fs = require('fs');
 const XLSX = require('xlsx');
-
 connection = require('../db/connection');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
-
 app.use(express.static('public'));
 app.use(body_parser.json());
 app.use(body_parser.urlencoded({
